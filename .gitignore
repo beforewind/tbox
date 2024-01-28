@@ -1,0 +1,8 @@
+apps/build*
+apps/*/build*
+apps/*/*.txt.user
+build*
+install
+*~
+doc
+tags
