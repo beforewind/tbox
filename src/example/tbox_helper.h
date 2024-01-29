@@ -15,6 +15,7 @@ void printServiceObject(Tbox* tbox, std::string& objName);
 
 void reqCallback(Request req);
 void rspCallback(Response rsp);
+void waitSync();
 
 void updateFirmware(Tbox* tbox, const std::string& fileName);
 void test_foeFlashMM(Tbox* tbox);
@@ -48,8 +49,12 @@ typedef struct {
 	uint32_t bankCount;
 	uint32_t ioCount;
 
+    // measure obj
+    ServiceObject measureObj;
+    ServiceObject generalObj;
+
 	// parameter info
-	//ServiceObject paraObj;
+    ServiceObject paraObj;
 	uint32_t current;
 	uint32_t voltage;
 	uint32_t delayus;
@@ -111,6 +116,24 @@ void generateWireExample(std::map<uint32_t, adapter_t>& adapterMap, std::vector<
 void generatePatternExample(std::map<uint32_t, device_t>& deviceMap, std::map<uint16_t, std::vector<uint8_t>>& doutPattern, std::map<uint16_t, std::vector<uint8_t>>& stimuliPattern);
 Request generateSetReqestExample(Tbox* tbox, std::map<uint16_t, std::vector<uint8_t>>& doutPattern, std::map<uint16_t, std::vector<uint8_t>>& stimuliPattern);
 Request generateGetRequestExample(Tbox* tbox, std::map<uint16_t, std::vector<uint8_t>>& doutPattern);
+
+
+/////////////////////////////////////////////////////////
+
+typedef struct {
+    uint32_t type;  // 0x100-resistor,0x200-capacitor,0x300-diode...
+    uint16_t deviceFrom;
+    uint16_t deviceTo;
+    uint16_t pinFrom;
+    uint16_t pinTo;
+    uint32_t nominalValue;
+    uint32_t measuredValue;
+    uint32_t unit;  // TODO: 标称单位，如电阻-欧姆，电容-pF //
+} component2t_t;  // 2-terminal components, resistor,capacitor,diode
+
+// components test
+void testComponent(Tbox* tbox, std::vector<component2t_t>& resList);
+//void testRelay(Tbox* tbox);
 
 
 #endif

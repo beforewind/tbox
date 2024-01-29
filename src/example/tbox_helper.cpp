@@ -159,8 +159,20 @@ void rspCallback(Response rsp)
         printArray(rdata.second);
     }
 
+#if 0
+    for (auto rdata : rsp.rspMeasure) {
+        std::cout << "  device:" << rdata.first << " measure:";
+        printArray(rdata.second);
+    }
+#endif
     // may read measured value from SDO according to the field of rspMode //
 
+}
+
+void waitSync()
+{
+    // wait the last response
+    while(rspCounter!=reqCounter);
 }
 
 ///////////////////////////////////////////////////
@@ -481,6 +493,20 @@ void writeParameter(Tbox* tbox)
             uint32_t delayus = 4;  // ms
             paraObj.setItem("delayus", &delayus, sizeof(delayus));
             //tbox->writeServiceItemData(id, paraObjName, "delayus", itemData);
+        }
+
+        // set lowTh if "lowTh" item exists
+        if (std::count(itemNameList.begin(), itemNameList.end(), "lowTh") > 0) {
+            uint32_t lowTh = 10;  // om
+            paraObj.setItem("lowTh", &lowTh, sizeof(lowTh));
+            //tbox->writeServiceItemData(id, paraObjName, "lowTh", itemData);
+        }
+
+        // set highTh if "highTh" item exists
+        if (std::count(itemNameList.begin(), itemNameList.end(), "highTh") > 0) {
+            uint32_t highTh = 10000;  // om
+            paraObj.setItem("highTh", &highTh, sizeof(highTh));
+            //tbox->writeServiceItemData(id, paraObjName, "highTh", itemData);
         }
 
         paraObjMap.insert({ id, paraObj });
@@ -921,8 +947,8 @@ void generatePatternExample(std::map<uint32_t, device_t>& deviceMap, std::map<ui
     stimuli1.resize(2,0);
     stimuli2.resize(2,0);
 
-    stimuli1[0] = 0x00;  // 0101_0000:IO5,IO7-LF,  ;0101, IO2,IO0--LF, IO3,IO1--HF
-    stimuli1[1] = 0x80;
+    stimuli1[0] = 0x05;  // 0101_0000:IO5,IO7-LF,  ;0101, IO2,IO0--LF, IO3,IO1--HF
+    stimuli1[1] = 0x00;
 
     stimuli2[0] = 0x05;  // 0101_0000:IO5,IO7-LF,  ;0101, IO2,IO0--LF, IO3,IO1--HF
     stimuli2[1] = 0x00;
@@ -1079,3 +1105,141 @@ Request generateGetRequestExample(Tbox* tbox, std::map<uint16_t, std::vector<uin
 #endif
 
 }
+
+
+/////////////////////////////////////////////////////////
+// components test
+
+// generate an empty reqest for all devices
+void generateSyncReq(Tbox* tbox, Request& req)
+{
+    req.reqDoutControl.clear();
+    req.reqIoPattern.clear();
+    req.reqMode.clear();
+
+    for (uint16_t id = 1; id <= tbox->getDeviceCount(); id++) {
+        uint16_t reqMode_u16 = 0;
+        req.reqMode.insert({ id, reqMode_u16 });
+    }
+}
+
+// method: test resistor/capacitor/diode using PDO & SDO
+// 0. write SDO measureObj with type/nominalValue/...
+// 1. setIo: set one terminal(IO1,pinTo) to LF
+// 2. setIo: set the other terminal(IO2,pinFrom) to HF
+// 3. getMeasure: do measurement in the TPU which IO2(pinFrom) belongs to.
+// 4. read SDO measureObj with measuredVale
+// 支持两端点的元件测试，如电阻、电容和二极管 //
+// TPU中增加了一个measure对象，查询关键字“measure” //
+// 限制条件：pinFrom是HF端，独占一个TPU；pinTo是LF端，最好独占一个TPU；一个元件的pinTo和pinFrom可以在一个TPU上，也可以跨TPU。 //
+// measure对象中的nominalValue是线束产品中的期望值 //
+void testComponent(Tbox* tbox, std::vector<component2t_t>& resList)
+{
+    //std::vector<resistor_t> resList;
+    component2t_t comp1;
+    comp1.type = 0x100;  // resistor
+    comp1.deviceFrom = 1;
+    comp1.deviceTo = 1;
+    comp1.pinFrom = 1;
+    comp1.pinTo = 2;
+    comp1.nominalValue = 99;
+    comp1.measuredValue = 0;
+    comp1.unit = 0;
+    resList.clear();
+    resList.push_back(comp1);
+
+    std::string objName = "measure";
+    printServiceObject(tbox, objName);
+
+#if 0
+    // 生成pinTo和pinFrom两个map，维护各自所在deviceId
+    std::map<uint16_t, uint16_t> pinToList;
+    std::map<uint16_t, uint16_t> pinFromList;
+    for (resistor_t& res : resList) {
+        pinToList.insert({res.deviceTo, res.pinTo});
+        pinFromList.insert({res.deviceFrom, res.pinFrom});
+    }
+#endif
+
+    // 写measure相关的参数到pinFrom所在节点的measureObj，如电阻类型、标称值等 //
+    std::map<uint16_t, ServiceObject> objMap;
+    for (component2t_t& comp : resList) {
+        ServiceObject measureObj;
+        tbox->getServiceObject(comp.deviceFrom, "measure", measureObj);
+        measureObj.setItem("type", &comp1.type, 4);
+        measureObj.setItem("nominal", &comp.nominalValue, 4);
+        measureObj.setItem("value", &comp.measuredValue, 4);
+        objMap.insert({comp.deviceFrom, measureObj});
+    }
+    tbox->writeServiceObject(objMap);
+    printServiceObject(tbox, objName);
+
+    Request req;
+    req.reqId = 0x1234;
+    std::vector<uint8_t> stimuli1;
+
+    // 所有pinTo设置成LF
+    generateSyncReq(tbox, req);  // empty req
+    req.reqId++;
+    for (component2t_t& comp : resList) {
+        uint16_t reqMode_u16 = req.reqMode.at(comp.deviceTo);
+        REQ_SYNC_OBJ* pReqMode = (REQ_SYNC_OBJ*)&reqMode_u16;
+        pReqMode->setio_valid = 1;  // 001-LF
+        req.reqMode.at(comp.deviceTo) = reqMode_u16;
+
+        stimuli1.clear();
+        stimuli1.resize(2,0);
+        uint16_t ioIndex = (0x01<<(comp.pinTo-1));
+        stimuli1[0] = ioIndex & 0xFF;
+        stimuli1[1] = (ioIndex>>8 & 0xFF);
+        req.reqIoPattern.insert({comp.deviceTo, stimuli1});
+    }
+    tbox->sendRequest(req);
+
+    // 所有pinFrom设置成HF
+    generateSyncReq(tbox, req);  // empty req
+    req.reqId++;
+    for (component2t_t& comp : resList) {
+        uint16_t reqMode_u16 = req.reqMode.at(comp.deviceTo);
+        REQ_SYNC_OBJ* pReqMode = (REQ_SYNC_OBJ*)&reqMode_u16;
+        pReqMode->setio_valid = 6;  // 110-HF additional
+        req.reqMode.at(comp.deviceFrom) = reqMode_u16;
+
+        stimuli1.clear();
+        stimuli1.resize(2,0);
+        uint16_t ioIndex = (0x01<<(comp.pinFrom-1));
+        stimuli1[0] = ioIndex & 0xFF;
+        stimuli1[1] = (ioIndex>>8 & 0xFF);
+        req.reqIoPattern.insert({comp.deviceFrom, stimuli1});
+    }
+    tbox->sendRequest(req);
+
+    // 从所有pinFrom getMeasure
+    generateSyncReq(tbox, req);  // empty req
+    req.reqId++;
+    for (component2t_t& comp : resList) {
+        uint16_t reqMode_u16 = req.reqMode.at(comp.deviceTo);
+        REQ_SYNC_OBJ* pReqMode = (REQ_SYNC_OBJ*)&reqMode_u16;
+        pReqMode->getmeasure_valid = 1;  //
+        req.reqMode.at(comp.deviceFrom) = reqMode_u16;
+    }
+    tbox->sendRequest(req);
+
+    // wait for the last response
+    waitSync();
+
+    // 从SDO读取各个测量值
+    //std::map<uint16_t, ServiceObject> objMap;
+    //objMap.clear();
+    tbox->readServiceObject(objMap);
+    for (component2t_t& comp : resList) {
+        if (objMap.count(comp.deviceFrom)) {
+            objMap.at(comp.deviceFrom).getItem("value", &comp.measuredValue, 4);
+        }
+    }
+    printServiceObject(tbox, objName);
+}
+
+
+
+

@@ -14,6 +14,7 @@
 #endif
 
 
+
 ///////////////////////////////////////////////////
 // follow the execution progress of req/rsp
 extern int32_t reqCounter;
@@ -173,15 +174,27 @@ int main(int argc, char **argv)
         }
     }
 
-    // wait the last response
-    while(rspCounter!=reqCounter);
-
-    tbox->stop();
+    waitSync();
 
     std::chrono::time_point<std::chrono::high_resolution_clock> timeEnd = std::chrono::high_resolution_clock::now();
     auto duration = (timeEnd - timeStart);
     std::cout << "total time:" << double(duration.count())/1000000.0 << " ms" << std::endl;
     std::cout << "average time per request:" << double(duration.count()/1000000.0/(count*1.0)) << " ms" << std::endl;
+
+
+    // components test
+    std::vector<component2t_t> resList;
+    testComponent(tbox, resList);
+    for (auto& comp : resList) {
+        std::cout << "comp type:" << comp.type << ", measuredValue:" << comp.measuredValue << ",  nominalValue:" << comp.nominalValue << std::endl;
+    }
+
+    // wait the last response
+    //while(rspCounter!=reqCounter);
+    //waitSync();
+
+    tbox->stop();
+
 
 
 #ifdef TBOX_DLL

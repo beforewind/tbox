@@ -308,11 +308,11 @@
     // 获取某个类型的对象及其子项 //
     int32_t EcTbox::readServiceObject(std::map<uint16_t, ServiceObject>& objMap)
     {
-        for(auto dev : objMap) {
+        for(auto& dev : objMap) {
             uint16_t deviceId = dev.first;
-            ServiceObject obj = dev.second;
-            for (auto subObj : obj.itemMap) {
-                ServiceItem item = subObj.second;
+            ServiceObject& obj = dev.second;
+            for (auto& subObj : obj.itemMap) {
+                ServiceItem& item = subObj.second;
                 mBus->sendSdoRead(deviceId, obj.objIndex, item.itemIndex, false, item.itemData);
             }
         }
@@ -322,11 +322,11 @@
     // 设置对象及其子项 //
     int32_t EcTbox::writeServiceObject(std::map<uint16_t, ServiceObject>& objMap)
     {
-        for(auto dev : objMap) {
+        for(auto& dev : objMap) {
             uint16_t deviceId = dev.first;
-            ServiceObject obj = dev.second;
-            for (auto subObj : obj.itemMap) {
-                ServiceItem item = subObj.second;
+            ServiceObject& obj = dev.second;
+            for (auto& subObj : obj.itemMap) {
+                ServiceItem& item = subObj.second;
                 mBus->sendSdoWrite(deviceId, obj.objIndex, item.itemIndex, false, item.itemData);
             }
         }
