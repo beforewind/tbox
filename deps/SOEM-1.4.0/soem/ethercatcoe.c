@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Licensed under the GNU General Public License version 2 with exceptions. See
  * LICENSE file in the project root for full license information
  */

@@ -1,4 +1,4 @@
-
+﻿
 #include "utils/tlogger.h"
 
 utils::TLogger& GetInstance() {
