@@ -37,7 +37,8 @@ TLogger::TLogger() {
 #ifdef _DEBUG
     nml_logger->set_level(spdlog::level::trace);
 #else
-    nml_logger->set_level(spdlog::level::info);
+    //nml_logger->set_level(spdlog::level::info);
+    nml_logger->set_level(spdlog::level::trace);
 #endif
 
     //设置当出发 err 或更严重的错误时立刻刷新日志到  disk .
