@@ -467,6 +467,7 @@ int si_map_sii(int slave)
     return retVal;
 }
 
+// no use
 void si_sdo(int cnt)
 {
     int i, j;
