@@ -1,0 +1,3 @@
+[submodule ".\\deps\\libhv"]
+	path = .\\deps\\libhv
+	url = https://github.com/ithewei/libhv.git
