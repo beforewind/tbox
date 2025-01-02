@@ -6,4 +6,6 @@ install
 *~
 doc
 tags
+deps/libhv*
 #*.zip
+bak_src*

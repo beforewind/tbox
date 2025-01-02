@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 3.16)
 
 project(updatefirmware LANGUAGES CXX C)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/../../install)
 # 设置静态库文件目录
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)

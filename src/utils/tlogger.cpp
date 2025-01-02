@@ -35,10 +35,10 @@ TLogger::TLogger() {
 
 // 设置日志记录级别
 #ifdef _DEBUG
-    nml_logger->set_level(spdlog::level::trace);
+    nml_logger->set_level(spdlog::level::debug);
 #else
-    //nml_logger->set_level(spdlog::level::info);
-    nml_logger->set_level(spdlog::level::trace);
+    nml_logger->set_level(spdlog::level::debug);
+    //nml_logger->set_level(spdlog::level::err);
 #endif
 
     //设置当出发 err 或更严重的错误时立刻刷新日志到  disk .

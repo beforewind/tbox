@@ -56,7 +56,9 @@ do {                                  		    \
     }                                      \
 } while (0)
 
-
+// 缺省使用两级TDEBUG和TERROR //
+// TDEBUG-用于提供调试信息
+// TERROR-用于提供错误信息
 #define TTRACE(...)  SPDLOG_LOGGER_CALL_(spdlog::level::trace,__VA_ARGS__)
 #define TDEBUG(...)  SPDLOG_LOGGER_CALL_(spdlog::level::debug,__VA_ARGS__)
 #define TINFO(...)   SPDLOG_LOGGER_CALL_(spdlog::level::info,__VA_ARGS__)
