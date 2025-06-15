@@ -1,0 +1,14 @@
+
+
+
+Version 0.0.1 : 2025-06-08
+- findAvailableNics() function bypasses the specified NICs before being added to the list of available NICs.
+- tbox::release() function is added to release Adapters from PC side. 
+- and add some support functions: 
+-- EctBus::getDinStatus, 
+-- EctBus::setDoutControl, 
+-- EctBus::setDoutControlSingle
+-- Slave::getOutputPDO
+-- EcTbox::getDinStatus()
+-- EcTbox::release()
+

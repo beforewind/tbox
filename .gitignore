@@ -1,4 +1,5 @@
 apps/build*
+apps/*/.vs
 apps/*/build*
 apps/*/*.txt.user
 build*
@@ -9,3 +10,8 @@ tags
 deps/libhv*
 #*.zip
 bak_src*
+tools*
+python*
+tests*
+apps/daemon*
+.vscode/settings.json

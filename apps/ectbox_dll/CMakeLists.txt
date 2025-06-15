@@ -78,6 +78,10 @@ SET(SOURCES
   ${CMAKE_SOURCE_DIR}/../../deps/SOEM-1.4.0/soem/ethercatsoe.c
 )
 
+SET(INTERFACE_SOURCES
+  ${CMAKE_SOURCE_DIR}/../../src/ectbox/tbox.cpp
+)
+
 SET(INTERFACE_HEADERS
   ${CMAKE_SOURCE_DIR}/../../src/include/tbox.h
 )
@@ -117,6 +121,7 @@ add_library(
 	${INTERFACE_HEADERS}
 	${HEADERS}
 	${SOURCES}
+  ${INTERFACE_SOURCES}
 )
 
 #add_library(

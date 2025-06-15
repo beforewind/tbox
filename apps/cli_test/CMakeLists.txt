@@ -84,6 +84,10 @@ SET(INTERFACE_HEADERS
   ${CMAKE_SOURCE_DIR}/../../src/include/tbox.h
 )
 
+SET(INTERFACE_SOURCES
+  ${CMAKE_SOURCE_DIR}/../../src/ectbox/tbox.cpp
+)
+
 # add headers
 SET(HEADERS
   ${CMAKE_SOURCE_DIR}/../../src/utils/tlogger.h
@@ -117,6 +121,7 @@ INCLUDE_DIRECTORIES(
   add_library(
     EcTbox SHARED  # STATIC  # SHARED
     ${INTERFACE_HEADERS}
+    ${INTERFACE_SOURCES}
     ${HEADERS}
     ${SOURCES}
   )
