@@ -13,6 +13,8 @@ std::string getFileName(const std::string &filePathName);
 bool isFileExists(const std::string &filePathName);
 void readFile(const std::string &filePathName, std::vector<uint8_t> &fileData);
 
+void printDinStatus(std::vector<uint8_t> array);
+void printDoutControl(std::vector<uint8_t> array);
 void printArray(std::vector<uint8_t> array);
 void printInt(std::vector<uint8_t> array);
 uint32_t convert2Int(std::vector<uint8_t> array);
@@ -133,11 +135,25 @@ typedef struct
 	uint16_t pinTo;
 	uint32_t nominalValue;
 	uint32_t measuredValue;
+	//float_t measuredValue;  // firmware内部是float类型，ethercat按照uint32_t类型传输，在这里应该恢复成float类型
 	uint32_t unit; // TODO: 标称单位，如电阻-欧姆，电容-pF //
 } component2t_t;   // 2-terminal components, resistor,capacitor,diode
 
 // components test
 void testComponent(Tbox *tbox, std::vector<component2t_t> &resList);
 // void testRelay(Tbox* tbox);
+
+// TC emit the release command
+// If there is no sync requests on the fly, tbox.release() will set doutControl[14].
+// Then the firmware check doutControl[14], and execute the release FSM to release the adapter.
+// TC check the dinStatus[6] which is the plug-in status of the adapter.
+void testRelease(Tbox *tbox);
+
+
+// user memory有两块：header和data
+// header大小128byte
+// data大小4kbytes
+void testUserMemory(Tbox *tbox);
+
 
 #endif

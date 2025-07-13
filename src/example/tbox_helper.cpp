@@ -66,6 +66,25 @@ void readFile(const std::string &filePathName, std::vector<uint8_t> &fileData)
 
 ///////////////////////////////////////////////////
 
+void printDinStatus(std::vector<uint8_t> array)
+{
+    unsigned short status = array.data()[0];
+    unsigned short din = array.data()[1];
+
+    std::cout << " status:" << std::hex << status;
+    std::cout << " din:" << std::hex << din << std::endl;
+}
+
+// 打印DoutControl //
+void printDoutControl(std::vector<uint8_t> array)
+{
+    unsigned short dout = array.data()[0];
+    unsigned short control = array.data()[1];
+
+    std::cout << " dout:" << std::hex << dout;
+    std::cout << " control:" << std::hex << control << std::endl;
+}
+
 void printArray(std::vector<uint8_t> array)
 {
     // for (int i=0;i<array.size();i++) {
@@ -145,10 +164,11 @@ void reqCallback(Request req)
 {
     reqCounter++;
     std::cout << "req " << req.reqId << " is accepted" << std::endl;
+
     for (auto rdout : req.reqDoutControl)
     {
         std::cout << "  device:" << rdout.first << " dout:";
-        printArray(rdout.second);
+        printDoutControl(rdout.second);
     }
     for (auto rdata : req.reqIoPattern)
     {
@@ -166,12 +186,16 @@ void rspCallback(Response rsp)
     for (auto rmode : rsp.rspMode) {
         std::cout << "  device:" << rmode.first << " mode:" << rmode.second << std::endl;
     }
+#endif
 
+#if 0
     for (auto rdin : rsp.rspDinStatus) {
         std::cout << "  device:" << rdin.first << " din:";
         printArray(rdin.second);
     }
+#endif
 
+#if 0
     for (auto rdata : rsp.rspIoFeedback) {
         std::cout << "  device:" << rdata.first << " feedback:";
         printArray(rdata.second);
@@ -209,7 +233,7 @@ void printRsp(Response rsp)
     for (auto rdin : rsp.rspDinStatus)
     {
         std::cout << "  device:" << rdin.first << " din:";
-        printArray(rdin.second);
+        printDinStatus(rdin.second);
     }
 
     for (auto rdata : rsp.rspIoFeedback)
@@ -307,7 +331,52 @@ void test_foeFlashMM(Tbox *tbox)
 
     tbox->readFlashObject(1, "adapter1", obj);
     TDEBUG("objName:{}",obj.objName);
+#else
+    FlashObject configObj;
+    configObj.objName = "config";
+    configObj.objType = 1;  // Tbox::CONFIG;
+    configObj.objData = std::vector<uint8_t>(8, 0x55);  // for test
+    configObj.objSize = configObj.objData.size();
 
+    FlashObject adapter0Obj;
+    adapter0Obj.objName = "adapter0";
+    adapter0Obj.objType = 2;  // Tbox::ADAPTER;
+    adapter0Obj.objData = std::vector<uint8_t>(8, 0x77);  // for test
+    adapter0Obj.objSize = adapter0Obj.objData.size();
+
+    FlashObject adapter1Obj;
+    adapter1Obj.objName = "adapter1";
+    adapter1Obj.objType = 2;  // Tbox::ADAPTER;
+    adapter1Obj.objData = std::vector<uint8_t>(8, 0xAA);  // for test
+    adapter1Obj.objSize = adapter1Obj.objData.size();
+
+    // devideId: from 1 to deviceCount
+    for (uint16_t id = 1; id<= tbox->getDeviceCount(); id++) {
+        tbox->writeFlashObject(id, configObj);
+        tbox->writeFlashObject(id, adapter0Obj);
+        tbox->writeFlashObject(id, adapter1Obj);
+    }
+
+/*
+    std::map<uint16_t, std::map<std::string, FlashObject>> flashObjMapMap;
+    tbox->getFlashObjectList(flashObjMapMap);
+    for (auto dev : flashObjMapMap) {
+        for (auto obj : dev.second) {
+            TDEBUG("objName:{}",obj.first);
+        }
+    }
+*/
+    // read
+    std::vector<FlashObject> flashObjList;
+    std::vector<std::string> objNameList;
+    tbox->getFlashObjectList(1, 1, flashObjList);
+
+    FlashObject obj;
+    tbox->readFlashObject(1, obj);
+    //TDEBUG("objName:{}",obj.objName);
+
+    tbox->readFlashObject(1, obj);
+    //TDEBUG("objName:{}",obj.objName);
 #endif
 }
 
@@ -452,6 +521,39 @@ int readDevice(Tbox *tbox)
 }
 
 ///////////////////////////////////////////////////
+///////////////////////////////////////////////////
+// 使用fw中的generalObj作为访问通道，访问所有SDO对象 //
+// 1. 访问单个item，用偏移地址方式  //
+// 2. 访问整个SDO对象，用偏移地址方式，且可能需要多次访问，才能完成一个Config对象 //
+
+
+void initAdapter(Tbox *tbox)
+{
+
+}
+
+void writeAdapter(Tbox *tbox)
+{
+    // write header
+    
+
+    // write data
+
+}
+
+void readAdapterHeader(Tbox *tbox)
+{
+
+}
+
+void readAdapterData(Tbox *tbox)
+{
+
+}
+
+
+///////////////////////////////////////////////////
+///////////////////////////////////////////////////
 
 // hardware info: hversion, fversion, dincount, doutcount, bankcount, tpperbank, iocount
 void readHardware(Tbox *tbox)
@@ -575,7 +677,7 @@ void writeParameter(Tbox *tbox)
         if (std::count(itemNameList.begin(), itemNameList.end(), "voltage") > 0)
         {
             // float_t voltage = 6.1;  // V  float should be convert to int //
-            uint32_t voltage = 0xF00; // for test DAC
+            uint32_t voltage = 0xFFF;  // 0xF00; // for test DAC
 #ifdef ACCESS_AT_ONCE
             paraObj.setItem("voltage", &voltage, sizeof(voltage));
 #else
@@ -585,6 +687,7 @@ void writeParameter(Tbox *tbox)
 #endif
         }
 
+#if 0        
         // set current if "delayus" item exists
         if (std::count(itemNameList.begin(), itemNameList.end(), "delayus") > 0)
         {
@@ -595,26 +698,27 @@ void writeParameter(Tbox *tbox)
             // tbox->writeServiceItemData(id, paraObjName, "delayus", itemData);
 #endif
         }
+#endif
 
-        // set lowTh if "lowTh" item exists
-        if (std::count(itemNameList.begin(), itemNameList.end(), "lowTh") > 0)
+        // set lowthreshold if "lowthreshold" item exists
+        if (std::count(itemNameList.begin(), itemNameList.end(), "lowthreshold") > 0)
         {
-            uint32_t lowTh = 10; // om
+            uint32_t lowthreshold = 10; // om
 #ifdef ACCESS_AT_ONCE
-            paraObj.setItem("lowTh", &lowTh, sizeof(lowTh));
+            paraObj.setItem("lowthreshold", &lowthreshold, sizeof(lowthreshold));
 #else
-            // tbox->writeServiceItemData(id, paraObjName, "lowTh", itemData);
+            // tbox->writeServiceItemData(id, paraObjName, "lowthreshold", itemData);
 #endif
         }
 
-        // set highTh if "highTh" item exists
-        if (std::count(itemNameList.begin(), itemNameList.end(), "highTh") > 0)
+        // set highthreshold if "highthreshold" item exists
+        if (std::count(itemNameList.begin(), itemNameList.end(), "highthreshold") > 0)
         {
-            uint32_t highTh = 10000; // om
+            uint32_t highthreshold = 10000; // om
 #ifdef ACCESS_AT_ONCE
-            paraObj.setItem("highTh", &highTh, sizeof(highTh));
+            paraObj.setItem("highthreshold", &highthreshold, sizeof(highthreshold));
 #else
-            // tbox->writeServiceItemData(id, paraObjName, "highTh", itemData);
+            // tbox->writeServiceItemData(id, paraObjName, "highthreshold", itemData);
 #endif
         }
 
@@ -702,7 +806,7 @@ void writeParameter2(Tbox *tbox, uint32_t curr = 8)
         if (std::count(itemNameList.begin(), itemNameList.end(), "voltage") > 0)
         {
             // float_t voltage = 6.1;  // V  float should be convert to int //
-            uint32_t voltage = 0xF00; // for test DAC
+            uint32_t voltage = 0xFFF; // for test DAC
 #ifdef ACCESS_AT_ONCE
             paraObj.setItem("voltage", &voltage, sizeof(voltage));
 #else
@@ -712,6 +816,7 @@ void writeParameter2(Tbox *tbox, uint32_t curr = 8)
 #endif
         }
 
+#if 0        
         // set current if "delayus" item exists
         if (std::count(itemNameList.begin(), itemNameList.end(), "delayus") > 0)
         {
@@ -722,26 +827,27 @@ void writeParameter2(Tbox *tbox, uint32_t curr = 8)
             // tbox->writeServiceItemData(id, paraObjName, "delayus", itemData);
 #endif
         }
+#endif
 
-        // set lowTh if "lowTh" item exists
-        if (std::count(itemNameList.begin(), itemNameList.end(), "lowTh") > 0)
+        // set lowthreshold if "lowthreshold" item exists
+        if (std::count(itemNameList.begin(), itemNameList.end(), "lowthreshold") > 0)
         {
-            uint32_t lowTh = 10; // om
+            uint32_t lowthreshold = 10; // om
 #ifdef ACCESS_AT_ONCE
-            paraObj.setItem("lowTh", &lowTh, sizeof(lowTh));
+            paraObj.setItem("lowthreshold", &lowthreshold, sizeof(lowthreshold));
 #else
-            // tbox->writeServiceItemData(id, paraObjName, "lowTh", itemData);
+            // tbox->writeServiceItemData(id, paraObjName, "lowthreshold", itemData);
 #endif
         }
 
-        // set highTh if "highTh" item exists
-        if (std::count(itemNameList.begin(), itemNameList.end(), "highTh") > 0)
+        // set highthreshold if "highthreshold" item exists
+        if (std::count(itemNameList.begin(), itemNameList.end(), "highthreshold") > 0)
         {
-            uint32_t highTh = 10000; // om
+            uint32_t highthreshold = 10000; // om
 #ifdef ACCESS_AT_ONCE
-            paraObj.setItem("highTh", &highTh, sizeof(highTh));
+            paraObj.setItem("highthreshold", &highthreshold, sizeof(highthreshold));
 #else
-            // tbox->writeServiceItemData(id, paraObjName, "highTh", itemData);
+            // tbox->writeServiceItemData(id, paraObjName, "highthreshold", itemData);
 #endif
         }
 
@@ -849,7 +955,7 @@ Request generateSetReqest(Tbox *tbox)
     Request req;
 
     std::vector<uint8_t> mainS_dout; // mainSwitch+dout
-    mainS_dout.push_back(0x0F);      // dout4,3,2,1
+    mainS_dout.push_back(0x00);      // dout4,3,2,1
     mainS_dout.push_back(0x00);
     // mainS_dout.push_back(0x09);  // main switch // 0x09:1001-COMG/COML/LOOP/HF
 
@@ -895,7 +1001,7 @@ Request generateGetRequest(Tbox *tbox)
     Request req;
 
     std::vector<uint8_t> mainS_dout; // mainSwitch+dout
-    mainS_dout.push_back(0x0F);      // dout4,3,2,1
+    mainS_dout.push_back(0x00);      // dout4,3,2,1
     mainS_dout.push_back(0x00);
     // mainS_dout.push_back(0x09);  // main switch // 0x09:1001-COMG/COML/LOOP/HF
 
@@ -967,6 +1073,7 @@ void readDeviceList(Tbox *tbox, std::map<uint32_t, device_t> &deviceMap)
         dev.id = id;
 
         dev.deviceSN = getDeviceObjectItem(tbox, id, "device", "deviceSN");
+#if 0 // v1.8 not support adapterXXX
         dev.adapterCount = getDeviceObjectItem(tbox, id, "device", "adapterCount");
         if (dev.adapterCount <= 0 || dev.adapterCount > 8)
         {
@@ -977,19 +1084,20 @@ void readDeviceList(Tbox *tbox, std::map<uint32_t, device_t> &deviceMap)
         {
             dev.adapterSN[i] = getDeviceObjectItem(tbox, id, "device", ("adapterSN" + (std::to_string(i))));
         }
-
+#endif
         dev.hversion = getDeviceObjectItem(tbox, id, "hardware", "hversion");
         dev.fversion = getDeviceObjectItem(tbox, id, "hardware", "fversion");
-        dev.dinCount = getDeviceObjectItem(tbox, id, "hardware", "dinCount");
-        dev.doutCount = getDeviceObjectItem(tbox, id, "hardware", "doutCount");
-        dev.bankCount = getDeviceObjectItem(tbox, id, "hardware", "bankCount");
-        dev.ioCount = getDeviceObjectItem(tbox, id, "hardware", "ioCount");
+        dev.dinCount = getDeviceObjectItem(tbox, id, "hardware", "dincount");
+        dev.doutCount = getDeviceObjectItem(tbox, id, "hardware", "doutcount");
+        dev.bankCount = getDeviceObjectItem(tbox, id, "hardware", "bankcount");
+        dev.ioCount = getDeviceObjectItem(tbox, id, "hardware", "iocount");
 
         dev.current = getDeviceObjectItem(tbox, id, "parameter", "current");
         dev.voltage = getDeviceObjectItem(tbox, id, "parameter", "voltage");
+#if 0
         dev.delayus = getDeviceObjectItem(tbox, id, "parameter", "delayus");
         dev.rsample = getDeviceObjectItem(tbox, id, "parameter", "rsample");
-
+#endif
         dev.doSize = getDeviceObjectSize(tbox, id, "reqDoutPDO");
         dev.diSize = getDeviceObjectSize(tbox, id, "respDinPDO");
         dev.txStimuliSize = getDeviceObjectSize(tbox, id, "reqDataPDO");
@@ -1245,7 +1353,7 @@ void generatePatternExample(std::map<uint32_t, device_t> &deviceMap, std::map<ui
 
         for (uint32_t i = 0; i < dev.doSize; i++)
         {
-            dout[i] = 0x0F; // 实际来自控制adapter的数字输出，0-off，1-开启 //
+            dout[i] = 0x00; // 实际来自控制adapter的数字输出，0-off，1-开启 //
         }
         doutPattern.insert({deviceId, dout});
     }
@@ -1275,7 +1383,7 @@ Request generateSetReqestExample(Tbox *tbox, std::map<uint16_t, std::vector<uint
 #if 0
     std::vector<uint8_t> mainS_dout;  // mainSwitch+dout
     mainS_dout.push_back(0x0F);  // dout4,3,2,1
-    mainS_dout.push_back(0x09);  // main switch // 0x09:1001-COMG/COML/LOOP/HF
+    mainS_dout.push_back(0x00);  // control
 #else
     for (auto &dout : doutPattern)
     {
@@ -1606,3 +1714,133 @@ void testComponent(Tbox *tbox, std::vector<component2t_t> &resList)
     tbox->sendRequest(req);
     waitSync();
 }
+
+// 同步设置doutControl，发起release
+// tbox中有一个异步release函数，暂不使用 //
+void testRelease(Tbox *tbox)
+{
+    std::cout << "testRelease" << std::endl;
+
+    // 可以选择释放任意个adapter
+    Request req;
+    req.reqId = 0x4567;
+    generateSyncReq(tbox, req); // empty req
+    
+    // 没有pengding状态的同步请求
+    waitSync();
+
+    // req模式，只有dout有效，其他都为0
+    for (uint16_t id = 1; id <= tbox->getDeviceCount(); id++)
+    {
+        uint16_t reqMode_u16 = req.reqMode.at(id);
+        REQ_SYNC_OBJ *pReqMode = (REQ_SYNC_OBJ *)&reqMode_u16;
+        pReqMode->setdout_valid = 1;  // only dout is valid
+        req.reqMode.at(id) = reqMode_u16;
+
+        std::vector<uint8_t> doutControl;
+        doutControl.push_back(0x00);   // byte0: dout7-0(8-1)
+        doutControl.push_back(0x40);   // byte1: bit6-release
+        req.reqDoutControl.insert({id, doutControl});
+    }
+    tbox->sendRequest(req);
+    waitSync();
+
+
+
+    // 等待TC释放Adapter, 判断释放完成的条件：plugin开关针置0，表示Adapter已经脱离出socket //
+    // 手工模拟：将DIN7（bit6）的跳线拔下，相当于plug in开关针被拔下 //
+    // 开关针是由lock电磁阀锁定的，release的FSM会根据延时参数的设定依次释放leak、level、lock电磁阀 //
+    // 释放完成后，DIN7的开关针会因unlock而弹出，表示Adapter已经脱离出socket //
+    while(1)
+    {
+        std::map<uint16_t, std::vector<uint8_t>> dinStatus = tbox->getDinStatus();
+        // 检查plug in off(即已经弹出)的Adapter数量 //
+        uint16_t offCount = 0;
+        // 可以选择需要release的Adapter进行操作和判断 //
+        for (uint16_t id = 1; id <= tbox->getDeviceCount(); id++)
+        {
+            if ((dinStatus.at(id).data()[1] & 0x40) == 0x00) // din[6]为1表示开关针连接，那么offCount不应计数  
+            {
+                offCount++;
+            }
+        }
+        if (offCount == tbox->getDeviceCount())
+        {
+            break;
+        }
+        Sleep(100); // 100ms
+        //std::this_thread::sleep_for(10ms); // 1ms, 1um, 1s...
+    }
+}
+
+
+// 有2块user memory
+// 1. user header: 16*64bytes
+// 2. user data: 64*64bytes
+void testUserMemory(Tbox *tbox)
+{
+#if 1
+    for (uint16_t id = 1; id <= tbox->getDeviceCount(); id++)
+    {
+        // user data
+        std::vector<uint8_t> writeData1, writeData2, readData1, readData2;
+
+        writeData1.resize(64, 0x12);
+        tbox->writeUserData(id, writeData1);
+        tbox->readUserData(id, 64, readData1);
+        if (writeData1 == readData1)
+        {
+            std::cout << "writeData1 == readData1" << std::endl;
+        }
+        else
+        {
+            std::cout << "writeData1 != readData1" << std::endl;
+        }
+
+        writeData2.resize(64, 0x55);
+        tbox->writeUserData(id, writeData2);
+        tbox->readUserData(id, 64, readData2);
+        if (writeData2 == readData2)
+        {
+            std::cout << "writeData2 == readData2" << std::endl;
+        }
+        else
+        {
+            std::cout << "writeData2 != readData2" << std::endl;
+        }
+
+        // user header
+        std::vector<uint8_t> writeHeader1, writeHeader2, readHeader1, readHeader2;
+
+        writeHeader1.resize(64, 0x77);
+        tbox->writeUserHeader(id, writeHeader1);
+        tbox->readUserHeader(id, 64, readHeader1);
+        if (writeHeader1 == readHeader1)
+        {
+            //std::cout << "writeHeader1:" << writeHeader1.data() << std::endl;
+            //std::cout << "readHeader1:" << readHeader1.data() << std::endl;
+            std::cout << "writeHeader1 == readHeader1" << std::endl;
+        }
+        else
+        {
+            std::cout << "writeHeader1 != readHeader1" << std::endl;
+        }
+
+        writeHeader2.resize(64, 0x33);
+        tbox->writeUserHeader(id, writeHeader2);
+        tbox->readUserHeader(id, 64, readHeader2);
+        if (writeHeader2 == readHeader2)
+        {
+            //std::cout << "writeHeader2:" << writeHeader2.data() << std::endl;
+            //std::cout << "readHeader2:" << readHeader2.data() << std::endl;
+            std::cout << "writeHeader2 == readHeader2" << std::endl;
+        }
+        else
+        {
+            std::cout << "writeHeader2 != readHeader2" << std::endl;
+        }
+
+    }
+#endif
+}
+

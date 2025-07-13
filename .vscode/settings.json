@@ -86,6 +86,10 @@
         "set": "cpp",
         "stack": "cpp",
         "*.rh": "cpp",
-        "cassert": "cpp"
-    }
+        "cassert": "cpp",
+        "stdio.h": "c",
+        "osal.h": "c",
+        "oshw.h": "c"
+    },
+    "cmake.sourceDirectory": "C:/github/tstudio/tbox/deps/SOEM-1.4.0/test/linux/eepromtool"
 }

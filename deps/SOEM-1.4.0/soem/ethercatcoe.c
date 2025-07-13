@@ -155,7 +155,7 @@ int ecx_SDOread(ecx_contextt *context, uint16 slave, uint16 index, uint8 subinde
    SDOp->Index = htoes(index);
    if (CA && (subindex > 1))
    {
-      subindex = 1;
+      subindex = 1;    // 在这里改的！！！
    }
    SDOp->SubIndex = subindex;
    SDOp->ldata[0] = 0;
@@ -424,7 +424,7 @@ int ecx_SDOwrite(ecx_contextt *context, uint16 Slave, uint16 Index, uint8 SubInd
       SDOp->SubIndex = SubIndex;
       if (CA && (SubIndex > 1))
       {
-         SDOp->SubIndex = 1;
+         SDOp->SubIndex = 1;  // 在这里改的！！！
       }
       SDOp->ldata[0] = htoel(psize);
       hp = p;

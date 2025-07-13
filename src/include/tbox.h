@@ -239,7 +239,10 @@ public:
     virtual bool pause() = 0;
     virtual bool resume() = 0;
     virtual bool stop() = 0;
+
+    // 异步设置doutControl，发起release，暂不使用 //
     virtual bool release(std::vector<uint16_t> &deviceIdList) = 0;
+    
     virtual bool isRunning() = 0;
     // virtual int32_t status() = 0;
     // virtual void printServiceObject() = 0;
@@ -272,34 +275,44 @@ public:
     virtual int32_t readServiceObject(std::map<uint16_t, ServiceObject> &objMap) = 0;
     virtual int32_t writeServiceObject(std::map<uint16_t, ServiceObject> &objMap) = 0;
 
+    // memory access
+    virtual int32_t readUserMemory(uint16_t deviceId, uint16_t memAddr, uint16_t byteSize, std::vector<uint8_t> &data) = 0;
+    virtual int32_t writeUserMemory(uint16_t deviceId, uint16_t memAddr, uint16_t byteSize, std::vector<uint8_t> &data) = 0;
+    virtual int32_t readUserHeader(uint16_t deviceId, uint16_t byteSize, std::vector<uint8_t> &data) = 0;
+    virtual int32_t writeUserHeader(uint16_t deviceId, std::vector<uint8_t> &data) = 0;
+    virtual int32_t readUserData(uint16_t deviceId, uint16_t byteSize, std::vector<uint8_t> &data)  = 0;
+    virtual int32_t writeUserData(uint16_t deviceId, std::vector<uint8_t> &data) = 0;
+
     // virtual int32_t readServiceObject(const std::string& objName, std::map<uint16_t, std::map<std::string, std::vector<uint8_t>>>& objDataMap) = 0;
     // virtual int32_t writeServiceObject(const std::string& objName, std::map<uint16_t, std::map<std::string, std::vector<uint8_t>>>& objDataMap) = 0;
 
-#if 0
-int32_t scanAdapters(
-    std::map<uint16_t, std::vector<uint8_t>> &deviceDataList,
-    std::map<uint16_t, std::map<std::string, std::vector<uint8_t>>> &adapterListMap);
+// int32_t scanAdapters(
+//     std::map<uint16_t, std::vector<uint8_t>> &deviceDataList,
+//     std::map<uint16_t, std::map<std::string, std::vector<uint8_t>>> &adapterListMap);
 
-// Foe Flash
-int32_t getFlashObjectList(const uint16_t deviceId, const uint32_t objType, std::vector<FlashObject> &objList);
-int32_t writeFlashObject(const uint16_t deviceId, FlashObject &obj);
-int32_t readFlashObject(const uint16_t deviceId, FlashObject &obj);
+// // Foe Flash
+virtual int32_t getFlashObjectList(const uint16_t deviceId, const uint32_t objType, std::vector<FlashObject> &objList) = 0;
+virtual int32_t writeFlashObject(const uint16_t deviceId, FlashObject &obj) = 0;
+virtual int32_t readFlashObject(const uint16_t deviceId, FlashObject &obj) = 0;
 
-int32_t getDeviceCount();
+// int32_t getDeviceCount();
 
-// Coe SDO/PDO
-int32_t getDeviceObject(uint16_t deviceId, DeviceObject& devObj);
-int32_t getDeviceObjectMap(std::map<uint16_t, DeviceObject>& deviceObjMap);
-int32_t readServiceItem(std::string objName, std::map<uint16_t, ServiceItem>& itemMap);
-int32_t readServiceObject(std::map<uint16_t, ServiceObject>& objMap);
-int32_t writeServiceItem(std::string objName, std::map<uint16_t, ServiceItem>& itemMap);
-int32_t writeServiceObject(std::map<uint16_t, ServiceObject>& objMap);
+// // Coe SDO/PDO
+// int32_t getDeviceObject(uint16_t deviceId, DeviceObject& devObj);
+// int32_t getDeviceObjectMap(std::map<uint16_t, DeviceObject>& deviceObjMap);
+// int32_t readServiceItem(std::string objName, std::map<uint16_t, ServiceItem>& itemMap);
+// int32_t readServiceObject(std::map<uint16_t, ServiceObject>& objMap);
+// int32_t writeServiceItem(std::string objName, std::map<uint16_t, ServiceItem>& itemMap);
+// int32_t writeServiceObject(std::map<uint16_t, ServiceObject>& objMap);
 
-// PDO loop
-int32_t setCallback(
-    const std::function<void(Request)> &requestCallback,
-    const std::function<void(Response)> &responseCallback);
-#endif
+// // PDO loop
+// int32_t setCallback(
+//     const std::function<void(Request)> &requestCallback,
+//     const std::function<void(Response)> &responseCallback);
+
+
+
+
 }; // Tbox
 
 // A factory of Tbox-implementing objects looks thus

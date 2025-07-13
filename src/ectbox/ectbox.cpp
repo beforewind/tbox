@@ -105,7 +105,7 @@ int32_t EcTbox::scanAdapters(std::map<uint16_t, std::vector<uint8_t>> &configDat
         std::vector<uint8_t> configData;
         std::map<std::string, std::vector<uint8_t>> adapterList;
         std::vector<FlashObject> objList;
-        getFlashObjectList(i, 0, objList);
+        getFlashObjectList(i, 1, objList);
 
         for (auto obj : objList)
         {
@@ -338,16 +338,16 @@ int32_t EcTbox::readServiceObject(std::map<uint16_t, ServiceObject> &objMap)
     {
         uint16_t deviceId = dev.first;
         ServiceObject &obj = dev.second;
-        TDEBUG("readServiceObject: deviceId:{}, index:{} ", deviceId, obj.objIndex);
+        //TDEBUG("readServiceObject: deviceId:{}, index:{} ", deviceId, obj.objIndex);
         for (auto &subObj : obj.itemMap)
         {
             // std::string itemName = subObj.first;
             ServiceItem &item = subObj.second;
-            TDEBUG("item.itemData.size:{}", item.itemData.size());
+            //TDEBUG("item.itemData.size:{}", item.itemData.size());
             mBus->sendSdoRead(deviceId, obj.objIndex, item.itemIndex, false, item.itemData);
             // obj.itemMap[subObj.first] = item;
             uint32_t tmp = item.itemData[0] + (item.itemData[1] << 8) + (item.itemData[2] << 16) + (item.itemData[3] << 24);
-            TDEBUG("--itemIndex:{}, itemData:{}", item.itemIndex, tmp);
+            //TDEBUG("--itemIndex:{}, itemData:{}", item.itemIndex, tmp);
             // TDEBUG("--itemIndex:{}, itemData:{},{},{},{},{}", item.itemIndex, item.itemData, item.itemData[0], item.itemData[1], item.itemData[2], item.itemData[3]);
         }
         // objMap[deviceId] = obj;
@@ -362,7 +362,7 @@ int32_t EcTbox::writeServiceObject(std::map<uint16_t, ServiceObject> &objMap)
     {
         uint16_t deviceId = dev.first;
         ServiceObject &obj = dev.second;
-        TDEBUG("writeServiceObject: deviceId:{}, index:{} ", deviceId, obj.objIndex);
+        //TDEBUG("writeServiceObject: deviceId:{}, index:{} ", deviceId, obj.objIndex);
         for (auto &subObj : obj.itemMap)
         {
             ServiceItem &item = subObj.second;
@@ -373,6 +373,164 @@ int32_t EcTbox::writeServiceObject(std::map<uint16_t, ServiceObject> &objMap)
         }
     }
     return 0;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+#define GENERAL_OBJECT_INDEX             (0x8000)  // general object of firmware
+#define COMMAND_OBJECT_INDEX             (0x8040)  // measure object subindex = 1 
+//#define COMMAND_OBJECT_INDEX             (0x9000)  // 用这个obj传递信息给general操作，如pageIndex等
+
+#define USER_MEMORY_PAGE_SIZE            (64)      // 64 bytes per page
+
+#define EEPROM_OBJECT_START_ADDR         (0)  // (32*USER_MEMORY_PAGE_SIZE)
+// #define EEPROM_HARDWARE_OBJ_ADDR         (EEPROM_OBJECT_START_ADDR + 0*EEPROM_PAGE_SIZE)  // 最大4page, 256bytes
+// #define EEPROM_PARAMETER_OBJ_ADDR        (EEPROM_OBJECT_START_ADDR + 4*EEPROM_PAGE_SIZE)
+// #define EEPROM_DEVICE_OBJ_ADDR           (EEPROM_OBJECT_START_ADDR + 8*EEPROM_PAGE_SIZE)
+// #define EEPROM_LOCKCOUNTER_ADDR          (EEPROM_OBJECT_START_ADDR + 12*EEPROM_PAGE_SIZE)
+#define EEPROM_USER_HEADR_ADDR           (EEPROM_OBJECT_START_ADDR + 16*USER_MEMORY_PAGE_SIZE)  // 最大16page, 1024bytes
+#define EEPROM_USER_DATA_ADDR            (EEPROM_OBJECT_START_ADDR + 32*USER_MEMORY_PAGE_SIZE)  // 最大64page, 4096bytes
+
+// 仅支持page_size的整数倍访问 //
+int32_t EcTbox::readUserMemory(uint16_t deviceId, uint16_t memAddr, uint16_t byteSize, std::vector<uint8_t> &data)
+{
+    if (byteSize % USER_MEMORY_PAGE_SIZE)
+    {
+        TERROR("byteSize should be mulitple of USER_MEMORY_PAGE_SIZE(64bytes)");
+        return -1;
+    }
+
+    data.clear();
+
+    for (int i = 0; i < byteSize; i += USER_MEMORY_PAGE_SIZE)
+    {
+        int32_t this_size = std::min(USER_MEMORY_PAGE_SIZE, byteSize - i);
+        std::vector<uint8_t> itemData;
+        itemData.resize(this_size, 0);
+        //uint8_t pageIndex = (memAddr+i)/USER_MEMORY_PAGE_SIZE;
+
+        // 用command object设置访问空间地址 //
+        std::vector<uint8_t> pageIndexData;
+        uint32_t addr = memAddr+i;
+        pageIndexData.resize(4, 0);
+        pageIndexData.data()[0] = addr & 0xff;
+        pageIndexData.data()[1] = (addr >> 8) & 0xff;
+        pageIndexData.data()[2] = (addr >> 16) & 0xff;
+        pageIndexData.data()[3] = (addr >> 24) & 0xff;
+
+        // 将地址写到command object的第0个item中 //
+        bool ret = mBus->sendSdoWrite(deviceId, COMMAND_OBJECT_INDEX, 1, false, pageIndexData);
+        if (!ret)
+        {
+            TERROR("readUserMemory addr failed");
+            return -1;
+        }
+
+        // 从general object读取数据 //
+        // bool ret2 = mBus->sendSdoRead(deviceId, GENERAL_OBJECT_INDEX, 1, (this_size< USER_MEMORY_PAGE_SIZE) ? false : true, itemData);
+        bool ret2 = mBus->sendSdoRead(deviceId, GENERAL_OBJECT_INDEX, 1, true, itemData);
+        if (ret2)
+        {
+            data.insert(data.end(), itemData.begin(), itemData.end());
+        }
+        else
+        {
+            TERROR("readUserMemory data failed");
+            return -1;
+        }
+    }
+    return data.size();
+}
+
+// 仅支持page_size的整数倍访问 //
+int32_t EcTbox::writeUserMemory(uint16_t deviceId, uint16_t memAddr, uint16_t byteSize, std::vector<uint8_t> &data)
+{
+    if (byteSize % USER_MEMORY_PAGE_SIZE)
+    {
+        TERROR("byteSize should be mulitple of USER_MEMORY_PAGE_SIZE(64bytes)");
+        return -1;
+    }
+
+    int32_t write_size = 0;
+    for (int i = 0; i < byteSize; i += USER_MEMORY_PAGE_SIZE)
+    {
+        int32_t this_size = std::min(USER_MEMORY_PAGE_SIZE, byteSize - i);
+        std::vector<uint8_t> itemData;
+        itemData.clear();
+        itemData.insert(itemData.begin(), data.begin() + i, data.begin() + i + this_size);
+        //uint8_t pageIndex = (memAddr+i)/USER_MEMORY_PAGE_SIZE;
+        
+        // 用command object设置访问空间地址 //
+        std::vector<uint8_t> pageIndexData;
+        uint32_t addr = memAddr+i;
+        pageIndexData.resize(4, 0);
+        pageIndexData.data()[0] = addr & 0xff;
+        pageIndexData.data()[1] = (addr >> 8) & 0xff;
+        pageIndexData.data()[2] = (addr >> 16) & 0xff;
+        pageIndexData.data()[3] = (addr >> 24) & 0xff;
+
+        // 将地址写到command object的第0个item中 //
+        bool ret = mBus->sendSdoWrite(deviceId, COMMAND_OBJECT_INDEX, 1, false, pageIndexData);
+        if (!ret)
+        {
+            TERROR("writeUserMemory addr failed");
+            return -1;
+        }
+
+        // 用general object写入数据 //
+        bool ret2 = mBus->sendSdoWrite(deviceId, GENERAL_OBJECT_INDEX, 1, (this_size < USER_MEMORY_PAGE_SIZE) ? false : true, itemData);
+        // bool ret2 = mBus->sendSdoWrite(deviceId, GENERAL_OBJECT_INDEX, 1, true, itemData);
+        if (!ret2)
+        {
+            TERROR("writeUserMemory data failed");
+            return -1;
+        }
+        else
+        {
+            write_size += this_size;
+        }
+    }
+    return write_size;
+}
+
+int32_t EcTbox::readUserHeader(uint16_t deviceId, uint16_t byteSize, std::vector<uint8_t> &data)
+{
+    if (byteSize > 16*USER_MEMORY_PAGE_SIZE)
+    {
+        TERROR("readUserHeader failed, data size too large");
+        return -1;
+    }
+    return readUserMemory(deviceId, EEPROM_USER_HEADR_ADDR, byteSize, data);
+}
+
+int32_t EcTbox::writeUserHeader(uint16_t deviceId, std::vector<uint8_t> &data)
+{
+    if (data.size() > 16*USER_MEMORY_PAGE_SIZE)
+    {
+        TERROR("writeUserHeader failed, data size too large");
+        return -1;
+    }
+    return writeUserMemory(deviceId, EEPROM_USER_HEADR_ADDR, data.size(), data);
+}
+
+int32_t EcTbox::readUserData(uint16_t deviceId, uint16_t byteSize, std::vector<uint8_t> &data)
+{
+    if (byteSize > 64*USER_MEMORY_PAGE_SIZE)
+    {
+        TERROR("readUserData failed, data size too large");
+        return -1;
+    }
+    return readUserMemory(deviceId, EEPROM_USER_DATA_ADDR, byteSize, data);
+}
+
+int32_t EcTbox::writeUserData(uint16_t deviceId, std::vector<uint8_t> &data)
+{
+    if (data.size() > 64*USER_MEMORY_PAGE_SIZE)
+    {
+        TERROR("writeUserData failed, data size too large");
+        return -1;
+    }
+    return writeUserMemory(deviceId, EEPROM_USER_DATA_ADDR, data.size(), data);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -549,7 +707,12 @@ int32_t EcTbox::dropResponse()
 
 std::map<uint16_t, std::vector<uint8_t>> EcTbox::getDinStatus()
 {
-    return currDinStatus;
+    std::lock_guard<std::mutex> locker{this->m};
+    if (!currDinStatus.empty())
+    {
+        return currDinStatus;
+    }
+    return std::map<uint16_t, std::vector<uint8_t>>();
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -673,8 +836,8 @@ bool EcTbox::release(std::vector<uint16_t> &deviceIdList)
     for (auto deviceId : deviceIdList)
     {
         // TODO: sendSdoWrite or setPDO
-#define INDX_DOUT_RELEASE  (0)  // TODO
-        mBus->setDoutControlSingle(deviceId, INDX_DOUT_RELEASE, 1);  //
+#define INDX_DOUT_RELEASE  (7)  // TODO
+        mBus->setDoutControlSingle(deviceId, (INDX_DOUT_RELEASE-1), 1);  //
         // mBus->release(deviceId);
     }
     return true;

@@ -99,7 +99,18 @@ int main(int argc, char **argv)
     int32_t deviceCount = tbox->getDeviceCount();
     std::cout << "find deviceCount=" << deviceCount << std::endl;
 
+
 #if 1
+    // user可用的存储器测试 //
+    int32_t cnt = 3;
+    while (cnt >0)
+    {
+        testUserMemory(tbox);
+        cnt--;
+    }
+#endif
+
+#if 0
     // write and read device info: deviceSN, adapterCount, adapterSN0, adapterSN1, ... //
     // initDevice(tbox);
     if (readDevice(tbox) < 0)
@@ -114,7 +125,7 @@ int main(int argc, char **argv)
     readHardware(tbox);
 
     // write and read parameters: current, voltage, delayus ...
-    writeParameter(tbox);
+//    writeParameter(tbox);
 
     // read PDO info: digital input/output, tx ioStimuli / rx ioFeedback
     readPdoInfo(tbox);
@@ -127,6 +138,7 @@ int main(int argc, char **argv)
     readDeviceList(tbox, deviceMap);
 
     // 测试flash读写 //
+//    test_foeFlashMM(tbox);
 
 #if 0
     // should be edited/import from Adapter database
@@ -162,7 +174,7 @@ int main(int argc, char **argv)
         std::cout << "test_count:" << test_count << std::endl;
 
         //
-        writeParameter(tbox);
+//        writeParameter(tbox);
 
         // start run thread of tbox //
         tbox->start();
@@ -271,7 +283,7 @@ int main(int argc, char **argv)
         testComponent(tbox, resList);
         for (auto &comp : resList)
         {
-            std::cout << "From device.pin:" << comp.deviceFrom << "." << comp.pinFrom << "  To device.pin:" << comp.deviceTo << "." << comp.pinTo << "  comp type:" << comp.type << ", measuredValue:" << comp.measuredValue << ",  nominalValue:" << comp.nominalValue << std::endl;
+            std::cout << "From device.pin:" << comp.deviceFrom << "." << comp.pinFrom << "  To device.pin:" << comp.deviceTo << "." << comp.pinTo << "  comp type:" << comp.type << ", measuredValue float:" << *(float_t *)&comp.measuredValue << ", measuredValue:0x" << comp.measuredValue  << ",  nominalValue:" << comp.nominalValue << std::endl;
         }
 
         // read parameter
@@ -282,12 +294,27 @@ int main(int argc, char **argv)
         // while(rspCounter!=reqCounter);
         // waitSync();
 
+        // release test
+        testRelease(tbox);
+
         tbox->stop();
 
         // test read obj after stop
+#if 0
         std::string objName = "parameter";
         printServiceObject(tbox, objName);
+#endif
     }
+
+#if 0
+    // free mode 测试
+    // 调用set请求，设置IO状态
+    // 进入free mode，周期获取IO状态
+    {
+        std::cout << "free mode test" << std::endl;
+    }
+#endif
+
 
     tbox->disconnect();
 

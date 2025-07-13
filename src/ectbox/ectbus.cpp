@@ -1839,11 +1839,11 @@ bool EctBus::sendSdoRead(const uint16_t slave, const uint16_t index, const uint8
 
     assert(static_cast<int>(slave) <= getNumberOfSlaves());
     // Expected length of the string. String needs to be preallocated
-    int size = value.size();
+    int size = value.size();  // buffer size 
     // Store for check at the end
     int expected_size = size;
     // Create buffer with the length of the string
-    std::vector<uint8_t> buffer(size, 0);
+    // std::vector<uint8_t> buffer(size, 0);
     int wkc = 0;
     {
         std::lock_guard<std::recursive_mutex> guard(contextMutex_);
@@ -1862,7 +1862,7 @@ bool EctBus::sendSdoRead(const uint16_t slave, const uint16_t index, const uint8
 
     if (size != (int)expected_size)
     {
-        TERROR("Slave {} : Size mismatch (expected size {}, read size {}", slave, size, buffer.size());
+        TERROR("Slave {} : Size mismatch (expected size {}, read size {}", slave, expected_size, size);
         return false;
     }
 

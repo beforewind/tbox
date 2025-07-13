@@ -92,6 +92,14 @@ public:
     int32_t readServiceObject(std::map<uint16_t, ServiceObject> &objMap);
     int32_t writeServiceObject(std::map<uint16_t, ServiceObject> &objMap);
 
+    // memory access
+    int32_t readUserMemory(uint16_t deviceId, uint16_t memAddr, uint16_t byteSize, std::vector<uint8_t> &data);
+    int32_t writeUserMemory(uint16_t deviceId, uint16_t memAddr, uint16_t byteSize, std::vector<uint8_t> &data);
+    int32_t readUserHeader(uint16_t deviceId, uint16_t byteSize, std::vector<uint8_t> &data);
+    int32_t writeUserHeader(uint16_t deviceId, std::vector<uint8_t> &data);
+    int32_t readUserData(uint16_t deviceId, uint16_t byteSize, std::vector<uint8_t> &data);
+    int32_t writeUserData(uint16_t deviceId, std::vector<uint8_t> &data);
+
     // 批量操作obj的各个分量，各个分量按照string关键字组成map，如设置相关device的参数组 //
     // 适合item都是32bit数据的场景，如参数和device硬件信息 //
     // int32_t readServiceObject(const std::string& objName, std::map<uint16_t, std::map<std::string, std::vector<uint8_t>>>& objDataMap);
