@@ -1,7 +1,15 @@
 
 
-V-20250615
-- 
+V-20250713
+- add test function in tbox_helper.cpp.
+-- testRelease()
+-- testUserMemory()
+
+- add functions in EctBox.cpp, whitch for accessing FRAM in TPU.
+-- readUserHeader/writeUserHeader/readUserData/writeUserData.
+
+- update service object definitions.
+--hardware/device/parameter/general
 
 
 
