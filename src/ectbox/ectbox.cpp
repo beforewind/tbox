@@ -418,8 +418,8 @@ int32_t EcTbox::readUserMemory(uint16_t deviceId, uint16_t memAddr, uint16_t byt
         pageIndexData.data()[2] = (addr >> 16) & 0xff;
         pageIndexData.data()[3] = (addr >> 24) & 0xff;
 
-        // 将地址写到command object的第0个item中 //
-        bool ret = mBus->sendSdoWrite(deviceId, COMMAND_OBJECT_INDEX, 1, false, pageIndexData);
+        // 将地址写到command object的第16个item中 //
+        bool ret = mBus->sendSdoWrite(deviceId, COMMAND_OBJECT_INDEX, 16, false, pageIndexData);
         if (!ret)
         {
             TERROR("readUserMemory addr failed");
@@ -469,8 +469,8 @@ int32_t EcTbox::writeUserMemory(uint16_t deviceId, uint16_t memAddr, uint16_t by
         pageIndexData.data()[2] = (addr >> 16) & 0xff;
         pageIndexData.data()[3] = (addr >> 24) & 0xff;
 
-        // 将地址写到command object的第0个item中 //
-        bool ret = mBus->sendSdoWrite(deviceId, COMMAND_OBJECT_INDEX, 1, false, pageIndexData);
+        // 将地址写到command object的第16个item中 //
+        bool ret = mBus->sendSdoWrite(deviceId, COMMAND_OBJECT_INDEX, 16, false, pageIndexData);
         if (!ret)
         {
             TERROR("writeUserMemory addr failed");

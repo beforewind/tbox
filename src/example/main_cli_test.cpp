@@ -14,20 +14,6 @@
 #endif
 
 ///////////////////////////////////////////////////
-// threaded tasks for testing tbox
-void test_links()
-{
-}
-
-void test_detections()
-{
-}
-
-void test_components()
-{
-}
-
-///////////////////////////////////////////////////
 // follow the execution progress of req/rsp
 extern int32_t reqCounter;
 extern int32_t rspCounter;

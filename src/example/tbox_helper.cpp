@@ -1739,7 +1739,7 @@ void testRelease(Tbox *tbox)
 
         std::vector<uint8_t> doutControl;
         doutControl.push_back(0x00);   // byte0: dout7-0(8-1)
-        doutControl.push_back(0x40);   // byte1: bit6-release
+        doutControl.push_back(0x40);   // byte1: bit6-release; bit[5:4]-indicator
         req.reqDoutControl.insert({id, doutControl});
     }
     tbox->sendRequest(req);

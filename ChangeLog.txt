@@ -5,7 +5,7 @@ V-20250713
 -- testRelease()
 -- testUserMemory()
 
-- add functions in EctBox.cpp, whitch for accessing FRAM in TPU.
+- add functions in EctBox.cpp, which for accessing FRAM in TPU.
 -- readUserHeader/writeUserHeader/readUserData/writeUserData.
 
 - update service object definitions.
